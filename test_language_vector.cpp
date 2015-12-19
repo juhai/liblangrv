@@ -5,22 +5,17 @@
 int main() {
   const size_t order = 3;
   const size_t n = 10000;
+  const size_t seed = 42;
 
-  std::unique_ptr<language_vector::vector> en(
-    language_vector::build("this is an impossibly small amount of text, written in English",
-                           order, n));
-  std::unique_ptr<language_vector::vector> en_more(
-    language_vector::build("another document, also written in the Queen's language",
-                           order, n));
+  auto build = [=](const std::string& text) {
+    return std::unique_ptr<language_vector::vector>(language_vector::build(text, order, n, seed));
+  };
+
+  auto en = build("this is an impossibly small amount of text, written in English");
+  auto en_more = build("another document, also written in the Queen's language");
   language_vector::merge(*en, *en_more);
-
-  std::unique_ptr<language_vector::vector> fr(
-    language_vector::build("c'est le premiere heure depuis minuit, non?",
-                           order, n));
-
-  std::unique_ptr<language_vector::vector> test(
-    language_vector::build("c'est une portion de text Fraincais",
-                           order, n));
+  auto fr = build("c'est le premiere heure depuis minuit, non?");
+  auto test = build("c'est une portion de text Fraincais");
 
   // Print out some examples
 

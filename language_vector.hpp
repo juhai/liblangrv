@@ -16,7 +16,7 @@ namespace language_vector {
   };
 
   // Construct a random vector representation of the given text
-  vector* build(const std::string& text, std::size_t order, std::size_t n);
+  vector* build(const std::string& text, std::size_t order, std::size_t n, std::size_t seed);
 
   // Accumulate the 'text' vector into language
   void merge(vector& language, const vector& text);
