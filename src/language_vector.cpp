@@ -45,6 +45,8 @@ namespace language_vector {
     typedef std::mt19937_64 generator_t;
 
     // generate (consistent) random permutation 'permutation'
+    // permutation[i] is the source for element 'i' in the destination
+    //   target[i] <- source[permutation[i]
     std::vector<std::size_t> permutation(n);
     std::iota(permutation.begin(), permutation.end(), 0);
     generator_t generator(seed);
@@ -87,7 +89,7 @@ namespace language_vector {
         *buffer_it = vector_impl::data_t(n, 0);
       } else {
         for (auto i = 0u; i < buffer_it->size(); ++i) {
-          ngram[permutation_order[i]] -= (*buffer_it)[i];
+          ngram[i] -= (*buffer_it)[permutation_order[i]];
         }
       }
 
