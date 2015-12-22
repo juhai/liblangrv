@@ -36,14 +36,12 @@ namespace {
 
 namespace language_vector {
 
-  // *** PIMPL wrappers ***
+  // *** PIMPL definitions ***
 
   struct vector_impl {
     typedef std::vector<int32_t> data_t;
     data_t data;
   };
-  vector::vector(vector_impl* _impl) : impl(_impl) { }
-  vector::~vector() { delete impl; }
 
   struct builder_impl {
     typedef std::mt19937_64 generator_t;
@@ -52,6 +50,7 @@ namespace language_vector {
     // permutation[i] is the source for element 'i' in the destination
     //   target[i] <- source[permutation[i]
     std::vector<std::size_t> permutation;
+    // permutation_order is just 'permutation' repeated 'order' times
     std::vector<std::size_t> permutation_order;
 
     builder_impl(std::size_t order, std::size_t n, std::size_t seed);
@@ -61,17 +60,6 @@ namespace language_vector {
 
     vector* operator()(const std::string& text) const;
   };
-  builder::builder(builder_impl* _impl) : impl(_impl) { }
-  builder::~builder() { delete impl; }
-  vector* builder::operator()(const std::string& text) const {
-    return (*impl)(text);
-  }
-
-  // Create a builder, which may be used to construct language vectors
-  builder* make_builder(std::size_t order, std::size_t n, std::size_t seed) {
-    return new builder(new builder_impl(order, n, seed));
-  }
-
 
   // *** Core ***
 
@@ -138,7 +126,7 @@ namespace language_vector {
     }
 
     // Wrap the data up to return to caller
-    return new vector(new vector_impl{data});
+    return new vector(std::unique_ptr<vector_impl>(new vector_impl{data}));
   }
 
   void merge(vector& language, const vector& text) {
@@ -157,6 +145,22 @@ namespace language_vector {
                     sum_bb += static_cast<float>(b) * b;
                   });
     return sum_ab / std::sqrt(sum_aa * sum_bb + 1e-9f);
+  }
+
+  // *** API wrappers ***
+
+  vector::vector(std::unique_ptr<vector_impl>&& _impl) : impl(std::move(_impl)) { }
+  vector::~vector() { }
+
+  builder::builder(std::unique_ptr<builder_impl>&& _impl) : impl(std::move(_impl)) { }
+  builder::~builder() { }
+
+  vector* builder::operator()(const std::string& text) const {
+    return (*impl)(text);
+  }
+
+  builder* make_builder(std::size_t order, std::size_t n, std::size_t seed) {
+    return new builder(std::unique_ptr<builder_impl>(new builder_impl(order, n, seed)));
   }
 
 } // namespace language_vector

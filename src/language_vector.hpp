@@ -2,29 +2,27 @@
 #define LANGUAGE_VECTOR_HPP
 
 #include <string>
+#include <memory>
 
 namespace language_vector {
 
   // An opaque type - use the following methods to construct & fiddle with it.
   struct vector_impl;
   struct vector {
-    explicit vector(vector_impl*);
-    vector(const vector&) = delete;
-    vector& operator=(const vector&) = delete;
+    explicit vector(std::unique_ptr<vector_impl>&&);
     ~vector();
-    vector_impl* impl;
+    std::unique_ptr<vector_impl> impl;
   };
 
+  // Builder for language vectors
   struct builder_impl;
   struct builder {
     // Construct a random vector representation of the given text
     vector* operator()(const std::string& text) const;
 
-    explicit builder(builder_impl*);
-    builder(const builder&) = delete;
-    builder& operator=(const builder&) = delete;
+    explicit builder(std::unique_ptr<builder_impl>&&);
     ~builder();
-    builder_impl* impl;
+    std::unique_ptr<builder_impl> impl;
   };
 
   // Create a builder, which may be used to construct language vectors
