@@ -4,6 +4,8 @@
 #include <random>
 #include <algorithm>
 
+// *** Helpers ***
+
 namespace {
 
   // Utility - apply F to each pair of elements in A and B,
@@ -31,7 +33,10 @@ namespace {
 
 } // namespace (anonymous)
 
+
 namespace language_vector {
+
+  // *** PIMPL wrappers ***
 
   struct vector_impl {
     typedef std::vector<int32_t> data_t;
@@ -40,20 +45,44 @@ namespace language_vector {
   vector::vector(vector_impl* _impl) : impl(_impl) { }
   vector::~vector() { delete impl; }
 
-  vector* build(const std::string& text, std::size_t order,
-                std::size_t n, std::size_t seed) {
+  struct builder_impl {
     typedef std::mt19937_64 generator_t;
-
-    // generate (consistent) random permutation 'permutation'
+    std::size_t order;
+    std::size_t seed;
     // permutation[i] is the source for element 'i' in the destination
     //   target[i] <- source[permutation[i]
-    std::vector<std::size_t> permutation(n);
+    std::vector<std::size_t> permutation;
+    std::vector<std::size_t> permutation_order;
+
+    builder_impl(std::size_t order, std::size_t n, std::size_t seed);
+
+    // helper method: generator of [-1, 1] vectors given a character
+    void get_char_hash(vector_impl::data_t& v, char c) const;
+
+    vector* operator()(const std::string& text) const;
+  };
+  builder::builder(builder_impl* _impl) : impl(_impl) { }
+  builder::~builder() { delete impl; }
+  vector* builder::operator()(const std::string& text) const {
+    return (*impl)(text);
+  }
+
+  // Create a builder, which may be used to construct language vectors
+  builder* make_builder(std::size_t order, std::size_t n, std::size_t seed) {
+    return new builder(new builder_impl(order, n, seed));
+  }
+
+
+  // *** Core ***
+
+  builder_impl::builder_impl(std::size_t _order, std::size_t n, std::size_t _seed)
+    : order(_order), seed(_seed), permutation(n), permutation_order(n) {
+
+    // generate (consistent) random permutation 'permutation'
     std::iota(permutation.begin(), permutation.end(), 0);
-    generator_t generator(seed);
-    std::shuffle(permutation.begin(), permutation.end(), generator);
+    std::shuffle(permutation.begin(), permutation.end(), generator_t(seed));
 
     // generate 'permutation ^ order' (for sliding window)
-    auto permutation_order = std::vector<std::size_t>(n);
     for (auto i = 0u; i < permutation.size(); ++i) {
       auto permuted = i;
       for (auto n = 0u; n < order; ++n) {
@@ -61,20 +90,22 @@ namespace language_vector {
       }
       permutation_order[i] = permuted;
     }
+  }
 
-    // define generator of [-1, 1] vectors given a character
-    auto get_char_hash = [seed] (vector_impl::data_t& v, char c) {
-      auto generator = generator_t(seed + c);
-      auto distribution = std::bernoulli_distribution();
-      for (auto i = 0u; i < v.size(); ++i) {
-        v[i] = (distribution(generator) ? 1 : -1);
-      }
-    };
+  // define generator of [-1, 1] vectors given a character
+  void builder_impl::get_char_hash(vector_impl::data_t& v, char c) const {
+    auto generator = generator_t(seed + c);
+    auto distribution = std::bernoulli_distribution();
+    for (auto i = 0u; i < v.size(); ++i) {
+      v[i] = (distribution(generator) ? 1 : -1);
+    }
+  }
 
-    // Loop to assimilate data
+  vector* builder_impl::operator()(const std::string& text) const {
+    const size_t n = permutation.size();
     vector_impl::data_t data(n, 0);
-    vector_impl::data_t ngram(n, 0);
     vector_impl::data_t tmp(n);
+    vector_impl::data_t ngram(n, 0);
     std::vector<vector_impl::data_t> buffer(order);
     auto buffer_it = buffer.begin();
     for (auto text_char : text) {
@@ -100,11 +131,13 @@ namespace language_vector {
       // 3. add the current 'ngram' to 'data'
       add(data, ngram);
 
+      // Cycle around the ngram buffer
       if (++buffer_it == buffer.end()) {
         buffer_it = buffer.begin();
       }
     }
 
+    // Wrap the data up to return to caller
     return new vector(new vector_impl{data});
   }
 

@@ -9,14 +9,26 @@ namespace language_vector {
   struct vector_impl;
   struct vector {
     explicit vector(vector_impl*);
-    vector(const vector_impl&) = delete;
-    vector& operator=(const vector_impl&) = delete;
+    vector(const vector&) = delete;
+    vector& operator=(const vector&) = delete;
     ~vector();
     vector_impl* impl;
   };
 
-  // Construct a random vector representation of the given text
-  vector* build(const std::string& text, std::size_t order, std::size_t n, std::size_t seed);
+  struct builder_impl;
+  struct builder {
+    // Construct a random vector representation of the given text
+    vector* operator()(const std::string& text) const;
+
+    explicit builder(builder_impl*);
+    builder(const builder&) = delete;
+    builder& operator=(const builder&) = delete;
+    ~builder();
+    builder_impl* impl;
+  };
+
+  // Create a builder, which may be used to construct language vectors
+  builder* make_builder(std::size_t order, std::size_t n, std::size_t seed);
 
   // Accumulate the 'text' vector into language
   void merge(vector& language, const vector& text);
