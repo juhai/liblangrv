@@ -12,10 +12,10 @@ namespace {
   // which should be 'ForwardIterable'
   template<class A, class B, class F>
   void for_each_pair(A& a, B& b, F f) {
-    const auto a_end = a.end();
-    const auto b_end = b.end();
-    auto a_it = a.begin();
-    auto b_it = b.begin();
+    const auto a_end = std::end(a);
+    const auto b_end = std::end(b);
+    auto a_it = std::begin(a);
+    auto b_it = std::begin(b);
     while (true) {
       if (a_it == a_end || b_it == b_end) { break; }
       f(*a_it, *b_it);
@@ -64,11 +64,11 @@ namespace language_vector {
   // *** Core ***
 
   builder_impl::builder_impl(std::size_t _order, std::size_t n, std::size_t _seed)
-    : order(_order), seed(_seed), permutation(n), permutation_order(n) {
+    : order{_order}, seed{_seed}, permutation(n), permutation_order(n) {
 
     // generate (consistent) random permutation 'permutation'
-    std::iota(permutation.begin(), permutation.end(), 0);
-    std::shuffle(permutation.begin(), permutation.end(), generator_t(seed));
+    std::iota(std::begin(permutation), std::end(permutation), 0);
+    std::shuffle(std::begin(permutation), std::end(permutation), generator_t(seed));
 
     // generate 'permutation ^ order' (for sliding window)
     for (auto i = 0u; i < permutation.size(); ++i) {
@@ -82,8 +82,8 @@ namespace language_vector {
 
   // define generator of [-1, 1] vectors given a character
   void builder_impl::get_char_hash(vector_impl::data_t& v, char c) const {
-    auto generator = generator_t(seed + c);
-    auto distribution = std::bernoulli_distribution();
+    auto generator = generator_t{seed + c};
+    auto distribution = std::bernoulli_distribution{};
     for (auto i = 0u; i < v.size(); ++i) {
       v[i] = (distribution(generator) ? 1 : -1);
     }
@@ -95,7 +95,7 @@ namespace language_vector {
     vector_impl::data_t tmp(n);
     vector_impl::data_t ngram(n, 0);
     std::vector<vector_impl::data_t> buffer(order);
-    auto buffer_it = buffer.begin();
+    auto buffer_it = std::begin(buffer);
     for (auto text_char : text) {
       // 1. permute 'data'
       for (auto i = 0u; i < data.size(); ++i) {
@@ -120,13 +120,13 @@ namespace language_vector {
       add(data, ngram);
 
       // Cycle around the ngram buffer
-      if (++buffer_it == buffer.end()) {
-        buffer_it = buffer.begin();
+      if (++buffer_it == std::end(buffer)) {
+        buffer_it = std::begin(buffer);
       }
     }
 
     // Wrap the data up to return to caller
-    return new vector(std::unique_ptr<vector_impl>(new vector_impl{data}));
+    return new vector{std::unique_ptr<vector_impl>{new vector_impl{data}}};
   }
 
   void merge(vector& language, const vector& text) {
@@ -139,7 +139,7 @@ namespace language_vector {
     auto sum_ab = 0.0f;
     auto sum_bb = 0.0f;
     for_each_pair(language.impl->data, text.impl->data,
-                  [&](float a, float b) {
+                  [&] (float a, float b) {
                     sum_aa += static_cast<float>(a) * a;
                     sum_ab += static_cast<float>(a) * b;
                     sum_bb += static_cast<float>(b) * b;
@@ -149,10 +149,10 @@ namespace language_vector {
 
   // *** API wrappers ***
 
-  vector::vector(std::unique_ptr<vector_impl>&& _impl) : impl(std::move(_impl)) { }
+  vector::vector(std::unique_ptr<vector_impl>&& _impl) : impl{std::move(_impl)} { }
   vector::~vector() { }
 
-  builder::builder(std::unique_ptr<builder_impl>&& _impl) : impl(std::move(_impl)) { }
+  builder::builder(std::unique_ptr<builder_impl>&& _impl) : impl{std::move(_impl)} { }
   builder::~builder() { }
 
   vector* builder::operator()(const std::string& text) const {
@@ -160,7 +160,7 @@ namespace language_vector {
   }
 
   builder* make_builder(std::size_t order, std::size_t n, std::size_t seed) {
-    return new builder(std::unique_ptr<builder_impl>(new builder_impl(order, n, seed)));
+    return new builder{std::unique_ptr<builder_impl>{new builder_impl{order, n, seed}}};
   }
 
 } // namespace language_vector

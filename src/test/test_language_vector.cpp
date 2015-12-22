@@ -4,8 +4,8 @@
 #include <catch.hpp>
 
 std::unique_ptr<language_vector::vector> build(const std::string& text, size_t order = 3) {
-  std::unique_ptr<language_vector::builder> builder(language_vector::make_builder(order, 10000, 42));
-  return std::unique_ptr<language_vector::vector>((*builder)(text));
+  std::unique_ptr<language_vector::builder> builder{language_vector::make_builder(order, 10000, 42)};
+  return std::unique_ptr<language_vector::vector>{(*builder)(text)};
 }
 
 using Catch::Detail::Approx;
