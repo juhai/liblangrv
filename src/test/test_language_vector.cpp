@@ -3,10 +3,18 @@
 #include <iostream>
 #include <catch.hpp>
 
-std::unique_ptr<language_vector::vector> build(const std::string& text, size_t order = 3) {
-  std::unique_ptr<language_vector::builder> builder{language_vector::make_builder(order, 10000, 42)};
-  return std::unique_ptr<language_vector::vector>{(*builder)(text)};
-}
+namespace {
+
+  std::unique_ptr<language_vector::builder> make_builder(size_t order = 3) {
+    return std::unique_ptr<language_vector::builder>{language_vector::make_builder(order, 10000, 42)};
+  }
+
+  std::unique_ptr<language_vector::vector> build(const std::string& text, size_t order = 3) {
+    auto builder = make_builder(order);
+    return std::unique_ptr<language_vector::vector>{(*builder)(text)};
+  }
+
+} // namespace (anonymous)
 
 using Catch::Detail::Approx;
 
@@ -55,7 +63,26 @@ TEST_CASE("Language vectors can be merged", "") {
   REQUIRE(language_vector::score(*x, *build("abcdef")) < 0.99f);
 }
 
-TEST_CASE("Larger example of language vectors", "") {
+TEST_CASE("Language vectors can be serialized/deserialized", "[io]") {
+  auto builder = make_builder();
+  auto round_trip = [&builder](const language_vector::vector& original) {
+    std::stringstream stream;
+    builder->save(original, stream);
+    return std::unique_ptr<language_vector::vector>{builder->load(stream)};
+  };
+
+  auto x = (*builder)("This is some text");
+  auto y = (*builder)("C'est autres text");
+
+  auto x_reload = round_trip(*x);
+  auto y_reload = round_trip(*y);
+
+  REQUIRE(language_vector::score(*x, *x_reload) == Approx(1));
+  REQUIRE(language_vector::score(*y, *y_reload) == Approx(1));
+  REQUIRE(language_vector::score(*x_reload, *y_reload) < 0.99f);
+}
+
+TEST_CASE("Example of larger language vectors", "") {
   auto en = build("this is an impossibly small amount of text, written in English");
   auto en_more = build("another document, also written in the Queen's language");
   language_vector::merge(*en, *en_more);

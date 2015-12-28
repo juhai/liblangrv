@@ -3,6 +3,7 @@
 #include <cmath>
 #include <random>
 #include <algorithm>
+#include <iostream>
 
 // *** Helpers ***
 
@@ -126,7 +127,7 @@ namespace language_vector {
     }
 
     // Wrap the data up to return to caller
-    return new vector{std::unique_ptr<vector_impl>{new vector_impl{data}}};
+    return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(data)}}};
   }
 
   void merge(vector& language, const vector& text) {
@@ -157,6 +158,25 @@ namespace language_vector {
 
   vector* builder::operator()(const std::string& text) const {
     return (*impl)(text);
+  }
+
+  void builder::save(const vector& language, std::ostream& out) const {
+    // write out in a very simple line-delimited text format
+    for (auto x : language.impl->data) {
+      out << x << "\n";
+    }
+  }
+
+  vector* builder::load(std::istream& in) const {
+    vector_impl::data_t data;
+    auto n = this->impl->permutation.size();
+    data.reserve(n);
+    for (auto i = 0u; i < n; ++i) {
+      vector_impl::data_t::value_type value;
+      in >> value;
+      data.push_back(value);
+    }
+    return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(data)}}};
   }
 
   builder* make_builder(std::size_t order, std::size_t n, std::size_t seed) {
