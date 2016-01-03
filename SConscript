@@ -33,5 +33,6 @@ pylib = env_py.SharedLibrary(
     LIBPREFIX=''
 )
 env_py.PrependENVPath("PYTHONPATH", "build/core/py")
+env_py['ENV']['PYTHONIOENCODING'] = 'utf8'
 env_py.AlwaysBuild(env_py.Alias('python', pylib, 'python3'))
 env_py.AlwaysBuild(env_py.Alias('ftest', pylib + Glob('#src/ftest/*.py'), 'python3 src/ftest/test.py'))
