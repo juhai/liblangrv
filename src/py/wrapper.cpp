@@ -1,6 +1,6 @@
 #include "Python.h"
 #include "language_vector.hpp"
-#include <iostream>
+#include <sstream>
 
 namespace {
 
@@ -39,6 +39,30 @@ namespace {
     return wrap_object((*builder)(text));
   }
 
+  PyObject* save(PyObject* /*self*/, PyObject* args) {
+    PyObject* pybuilder;
+    PyObject* pylanguage;
+    if (!PyArg_ParseTuple(args, "OO", &pybuilder, &pylanguage)) {
+      return nullptr;
+    }
+    auto builder = unwrap_object<language_vector::builder>(pybuilder);
+    auto language = unwrap_object<language_vector::vector>(pylanguage);
+    std::ostringstream str;
+    builder->save(*language, str);
+    return Py_BuildValue("y", str.str().c_str());
+  }
+
+  PyObject* load(PyObject* /*self*/, PyObject* args) {
+    PyObject* pybuilder;
+    const char* bytes;
+    if (!PyArg_ParseTuple(args, "Oy", &pybuilder, &bytes)) {
+      return nullptr;
+    }
+    auto builder = unwrap_object<language_vector::builder>(pybuilder);
+    std::istringstream str(bytes);
+    return wrap_object(builder->load(str));
+  }
+
   PyObject* merge(PyObject* /*self*/, PyObject* args) {
     PyObject* pylanguage;
     PyObject* pytext;
@@ -69,6 +93,8 @@ namespace {
     { "make_builder", make_builder, METH_VARARGS,
       "Create a builder, which may be used to construct language vectors, and load them from a stream" },
     { "build", build, METH_VARARGS, "Build a language vector from a builder & a text string" },
+    { "save", save, METH_VARARGS, "Save a language vector ``bytes = save(builder, vector)``" },
+    { "load", load, METH_VARARGS, "Save a language vector ``vector = load(builder, bytes)``" },
     { "merge", merge, METH_VARARGS, "Merge two language vector" },
     { "score", score, METH_VARARGS, "Compare two language vectors" },
     { nullptr, nullptr, 0, nullptr }
