@@ -83,10 +83,14 @@ namespace language_vector {
 
   // define generator of [-1, 1] vectors given a character
   void builder_impl::get_char_hash(vector_impl::data_t& v, char c) const {
+    constexpr auto nbits = std::log2(generator_t::max());
     auto generator = generator_t{seed + c};
-    auto distribution = std::bernoulli_distribution{};
-    for (auto i = 0u; i < v.size(); ++i) {
-      v[i] = (distribution(generator) ? 1 : -1);
+    const auto size = v.size();
+    for (auto i = 0u; i < size; i += nbits) {
+      auto n = generator();
+      for (auto j = 0u; j < std::min<size_t>(nbits, size - i); ++j, n >>= 1) {
+        v[i+j] = (n & 1 ? 1 : -1);
+      }
     }
   }
 
