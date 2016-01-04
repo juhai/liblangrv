@@ -9,9 +9,10 @@ def build_so(env, base):
 Import('*')
 env = env.Clone()
 
-# Core library
 env.Append(CXXFLAGS=['-std=c++11', '-Wall', '-Wextra', '-Werror', '-O3', '-g', '-fPIC'],
            CPPDEFINES=[('FORTIFY_SOURCE', '2')])
+
+# Core library
 objs = map(build_so(env, ""), Glob('src/*.cpp'))
 
 # Unit tests
@@ -35,4 +36,5 @@ pylib = env_py.SharedLibrary(
 env_py.PrependENVPath("PYTHONPATH", "build/core/py")
 env_py['ENV']['PYTHONIOENCODING'] = 'utf8'
 env_py.AlwaysBuild(env_py.Alias('python', pylib, 'python3'))
-env_py.AlwaysBuild(env_py.Alias('ftest', pylib + Glob('#src/ftest/*.py'), 'python3 src/ftest/test.py'))
+interpreter = 'python3' if int(ARGUMENTS.get('profile', '0')) == 0 else 'python3 -m yep --'
+env_py.AlwaysBuild(env_py.Alias('ftest', pylib + Glob('#src/ftest/*.py'), interpreter + ' src/ftest/test.py'))
