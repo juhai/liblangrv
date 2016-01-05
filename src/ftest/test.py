@@ -6,9 +6,9 @@ import os.path as path
 
 builder = language_vector.make_builder(5, 10000, 42)
 data_dir = "build/data"
-languages = ["English", "French", "German", ]#"Italian", "Latin", "Vietnamese"]
-train_lines = 200 # 20000
-valid_lines = 100 # 10000
+languages = ["English", "French", "German", "Italian", "Latin", "Vietnamese"]
+train_lines = 1000 # 20000
+valid_lines = 1000 # 10000
 verbose = False
 
 def open_language(language):
@@ -23,7 +23,7 @@ def for_lines(language, description, start, count, action):
             action(line)
             nchars += len(line)
     elapsed_time = time.time() - start_time
-    print("%s.%s: %d chars at %.1e chars/s" % (description, language, nchars, nchars / elapsed_time))
+    print("\t%s.%s: %d chars at %.1e chars/s" % (description, language, nchars, nchars / elapsed_time))
 
 def build_language(language):
     v = language_vector.build(builder, "")
