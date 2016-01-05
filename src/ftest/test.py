@@ -7,8 +7,8 @@ import os.path as path
 builder = language_vector.make_builder(4, 10000, 42)
 data_dir = "build/data"
 languages = ["English", "French", "German", "Italian", "Latin", "Vietnamese"]
-train_lines = 1000 # 20000
-valid_lines = 1000 # 10000
+train_lines = 1000
+valid_lines = 1000
 verbosity = 0
 
 def open_language(language):
