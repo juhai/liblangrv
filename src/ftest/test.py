@@ -4,12 +4,12 @@ import os.path as path
 
 # Configuration
 
-builder = language_vector.make_builder(5, 10000, 42)
+builder = language_vector.make_builder(4, 10000, 42)
 data_dir = "build/data"
 languages = ["English", "French", "German", "Italian", "Latin", "Vietnamese"]
 train_lines = 1000 # 20000
 valid_lines = 1000 # 10000
-verbose = False
+verbosity = 0
 
 def open_language(language):
     return codecs.open(path.join(data_dir, "%s.txt" % language), "r", "utf8")
@@ -52,7 +52,7 @@ for language in languages:
         class_language = classify(line)
         success = (language == class_language)
         nsuccess += success
-        if verbose:
+        if 2 <= verbosity or (1 <= verbosity and not success):
             print("%s %s  (%s -> %s)" % (
                 "SUCCESS" if success else "   FAIL", line, language, class_language)
             )

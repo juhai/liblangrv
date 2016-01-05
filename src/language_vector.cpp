@@ -75,13 +75,13 @@ namespace language_vector {
 
   vector* builder_impl::operator()(const std::string& text) const {
     const size_t n = permutation.size();
+    vector_impl::data_t result(n, 0);
 
     // Working data - space for ngrams, temporary/scratch space,
     // and for memorized character vectors
-    vector_impl::data_t data(n, 0);
-    vector_impl::data_t ngram(n, 0);
+    vector_impl::data_t ngram(n, 1);
     vector_impl::data_t tmp_ngram(n);
-    std::vector<vector_impl::data_t> buffer(order+1, vector_impl::data_t(n, 0));
+    std::vector<vector_impl::data_t> buffer(order+1, vector_impl::data_t(n, 1));
     auto buffer_it = std::begin(buffer);
 
     for (auto text_char : text) {
@@ -107,13 +107,13 @@ namespace language_vector {
           new_char[idx] = char_element;
 
           // Compute and save the updated ngram
-          const auto ngram_element = ngram[permutation[idx]] - old_char[permutation_order[idx]] + char_element;
+          const auto ngram_element = ngram[permutation[idx]] * old_char[permutation_order[idx]] * char_element;
           tmp_ngram[idx] = ngram_element;
 
-          // Accumulate the computed ngram into the data
+          // Accumulate the computed ngram into the result
           // Note that this 'incorrectly' adds leading ngrams (but these can be viewed
-          // as start-of-sequence markers)
-          data[idx] += ngram_element;
+          // as representing start-of-sequence markers)
+          result[idx] += ngram_element;
         }
       }
 
@@ -124,8 +124,8 @@ namespace language_vector {
       buffer_it = oldest_buffer_it;
     }
 
-    // Wrap the data up to return to caller
-    return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(data)}}};
+    // Wrap the result up to return to caller
+    return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(result)}}};
   }
 
   void merge(vector& language, const vector& text) {
