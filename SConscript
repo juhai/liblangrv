@@ -39,4 +39,5 @@ env_py.PrependENVPath("PYTHONPATH", "build/core/py")
 env_py['ENV']['PYTHONIOENCODING'] = 'utf8'
 env_py.AlwaysBuild(env_py.Alias('python', pylib, 'python3'))
 interpreter = 'python3' if int(ARGUMENTS.get('profile', '0')) == 0 else 'python3 -m yep --'
-env_py.AlwaysBuild(env_py.Alias('ftest', pylib + Glob('#src/ftest/*.py'), interpreter + ' src/ftest/test.py'))
+test_functional = File('#src/test/test_functional.py')
+env_py.AlwaysBuild(env_py.Alias('ftest', pylib + [test_functional], ' '.join([interpreter, test_functional.srcnode().path])))
