@@ -19,6 +19,19 @@ namespace {
     return PyCapsule_New(obj, nullptr, destroy_capsule<T>);
   }
 
+  // Little RAII for PyEval_SaveThread() & PyEval_RestoreThread()
+  struct AllowThreads {
+    PyThreadState* state;
+    AllowThreads() : state(PyEval_SaveThread()) { }
+    AllowThreads(const AllowThreads&) = delete;
+    ~AllowThreads() { PyEval_RestoreThread(state); }
+  };
+  template<class F>
+  auto allow_threads(const F& f) -> decltype(f()) {
+    AllowThreads allow;
+    return f();
+  }
+
   // Wrapper functions
 
   PyObject* make_builder(PyObject* /*self*/, PyObject* args) {
@@ -36,7 +49,7 @@ namespace {
       return nullptr;
     }
     auto builder = unwrap_object<language_vector::builder>(pybuilder);
-    return wrap_object((*builder)(text));
+    return wrap_object(allow_threads([builder, &text] { return (*builder)(text); }));
   }
 
   PyObject* save(PyObject* /*self*/, PyObject* args) {
@@ -71,7 +84,7 @@ namespace {
     }
     auto language = unwrap_object<language_vector::vector>(pylanguage);
     auto text = unwrap_object<language_vector::vector>(pytext);
-    language_vector::merge(*language, *text);
+    allow_threads([language, text] { language_vector::merge(*language, *text); });
     return Py_BuildValue("");
   }
 
@@ -83,7 +96,7 @@ namespace {
     }
     auto language = unwrap_object<language_vector::vector>(pylanguage);
     auto text = unwrap_object<language_vector::vector>(pytext);
-    auto result = language_vector::score(*language, *text);
+    auto result = allow_threads([language, text] { return language_vector::score(*language, *text); });
     return Py_BuildValue("f", result);
   }
 
