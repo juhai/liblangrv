@@ -16,6 +16,12 @@ env.Append(CXXFLAGS=['-std=c++11', '-Wall', '-Wextra', '-Werror', '-O3', '-g', '
 
 # Core library
 objs = map(build_so(env, ""), Glob('src/*.cpp'))
+shared_object = env.SharedLibrary('langrv', objs)
+
+# Install target for core
+install_headers = env.Install('/usr/local/include', Glob('src/*.hpp'))
+install_so = env.Install('/usrlocal/lib', shared_object)
+env.Alias('install', install_headers + install_so)
 
 # Unit tests
 env_test = env.Clone()
@@ -30,14 +36,8 @@ py_include_path = subprocess.check_output(
 ).strip()
 env_py = env.Clone()
 env_py.Append(CPPPATH=['#src', py_include_path])
-pylib = env_py.SharedLibrary(
-    'py/language_vector',
+env_py.SharedLibrary(
+    'py/langrv',
     objs + map(build_so(env_py, "py"), Glob('src/py/*.cpp')),
     LIBPREFIX=''
 )
-env_py.PrependENVPath("PYTHONPATH", "build/core/py")
-env_py['ENV']['PYTHONIOENCODING'] = 'utf8'
-env_py.AlwaysBuild(env_py.Alias('python', pylib, 'python3'))
-interpreter = 'python3' if int(ARGUMENTS.get('profile', '0')) == 0 else 'python3 -m yep --'
-test_functional = File('#src/test/test_functional.py')
-env_py.AlwaysBuild(env_py.Alias('ftest', pylib + [test_functional], ' '.join([interpreter, test_functional.srcnode().path])))

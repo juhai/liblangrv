@@ -1,18 +1,23 @@
-import language_vector, collections, codecs, time
+import langrv, argparse, collections, codecs, time
 import itertools as it
 import os.path as path
 
 # Configuration
 
-builder = language_vector.make_builder(4, 10000, 42)
-data_dir = "build/data"
+parser = argparse.ArgumentParser(
+    description="""Run a functional (quality) test for language classification using random vectors."""
+)
+parser.add_argument("data", metavar="DIR", help="Directory to scan for language data files")
+args = parser.parse_args()
+
+builder = langrv.make_builder(4, 10000, 42)
 languages = ["English", "French", "German", "Italian", "Latin", "Vietnamese"]
 train_lines = 1000
 valid_lines = 1000
 verbosity = 0
 
 def open_language(language):
-    return codecs.open(path.join(data_dir, "%s.txt" % language), "r", "utf8")
+    return codecs.open(path.join(args.data, "%s.txt" % language), "r", "utf8")
 
 def for_lines(language, description, start, count, action):
     nchars = 0
@@ -26,9 +31,9 @@ def for_lines(language, description, start, count, action):
     print("\t%s.%s: %d chars at %.1e chars/s" % (description, language, nchars, nchars / elapsed_time))
 
 def build_language(language):
-    v = language_vector.build(builder, "")
+    v = langrv.build(builder, "")
     def process_line(line):
-        language_vector.merge(v, language_vector.build(builder, line))
+        langrv.merge(v, langrv.build(builder, line))
     for_lines(language, "build", 0, train_lines, process_line)
     return v
 
@@ -37,9 +42,9 @@ language_vectors = collections.OrderedDict((language, build_language(language)) 
 
 def classify(text):
     """Classify the given text (line) under the set of loaded language vectors."""
-    text_vector = language_vector.build(builder, text)
+    text_vector = langrv.build(builder, text)
     return max(language_vectors.keys(),
-               key=lambda language: language_vector.score(language_vectors[language], text_vector))
+               key=lambda language: langrv.score(language_vectors[language], text_vector))
 
 # 2. classify text vectors - verse by verse
 for language in languages:

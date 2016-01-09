@@ -114,6 +114,6 @@ namespace {
 
 } // namespace (anonymous)
 
-PyMODINIT_FUNC PyInit_language_vector() {
+PyMODINIT_FUNC PyInit_langrv() {
   return PyModule_Create(&module);
 }

@@ -6,10 +6,26 @@ env = Environment()
 env.Command([File('#build/third-party/Catch/include/catch.hpp')], [],
             'rm -rf build/third-party/Catch; mkdir -p build/third-party && git clone https://github.com/philsquared/Catch.git build/third-party/Catch')
 
-# Data - bible translations
-env.Command([File("#build/data/English.txt")], [],
-            "python3 extract_bible.py -v build/data")
-
 # Code
 Export('env')
 SConscript('SConscript', variant_dir='build/core', duplicate=0)
+
+# Repl & functional tests
+env_py = env.Clone()
+env_py.PrependENVPath('PYTHONPATH', 'build/core/py')
+env_py['ENV']['PYTHONIOENCODING'] = 'utf8'
+pylib = File('#build/core/py/langrv.so')
+interpreter = 'python3' if int(ARGUMENTS.get('profile', '0')) == 0 else 'python3 -m yep --'
+
+# Interactive Python repl
+env_py.AlwaysBuild(env_py.Alias('repl', [pylib], interpreter))
+
+# Multilingual data - bible translations
+test_data = env.Command([File('#build/data/English.txt')], File('#tools/extract_bible.py'),
+                        'python3 ${SOURCE} -v build/data')
+test_functional = File('#tools/test_functional.py')
+env_py.AlwaysBuild(env_py.Alias('ftest', [pylib, test_functional] + test_data,
+                                '%s %s build/data' % (interpreter, test_functional)))
+
+# Defaults - everything except installation
+env.Default('.', 'test', 'ftest')
