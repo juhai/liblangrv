@@ -16,11 +16,11 @@ env.Append(CXXFLAGS=['-std=c++11', '-Wall', '-Wextra', '-Werror', '-O3', '-g', '
 
 # Core library
 objs = map(build_so(env, ""), Glob('src/*.cpp'))
-shared_object = env.SharedLibrary('langrv', objs)
+shared_object = env.SharedLibrary('langrv', objs, SHLIBVERSION=version)
 
 # Install target for core
 install_headers = env.Install('/usr/local/include', Glob('src/*.hpp'))
-install_so = env.Install('/usrlocal/lib', shared_object)
+install_so = env.Install('/usr/local/lib', shared_object)
 env.Alias('install', install_headers + install_so)
 
 # Unit tests
