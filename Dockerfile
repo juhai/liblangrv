@@ -11,13 +11,14 @@ RUN apt-get -q update        \
             scons            \
             wget             \
     && apt-get -q clean      \
-    && pip3 install yep
+    && pip3 install          \
+            yep
 
-# 2. Add files
+# 2. Add project files
 ADD . /opt/langrv
 
 # 3. Install separately as a C++ & Python library
 RUN cd /opt/langrv              \
     && scons install            \
     && python3 setup.py install \
-    && rm -r build
+    && rm -rf build

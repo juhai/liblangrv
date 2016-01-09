@@ -26,8 +26,15 @@ env_py.AlwaysBuild(env_py.Alias('repl', [pylib], interpreter))
 test_data = env.Command([File('#build/data/English.txt')], File('#tools/extract_bible.py'),
                         'python3 ${SOURCE} -v build/data')
 test_functional = File('#tools/test_functional.py')
+test_languages = ['English', 'French', 'Spanish', 'Basque', 'German', 'Danish', 'Vietnamese']
+test_threshold = 0.99
 env_py.AlwaysBuild(env_py.Alias('ftest', [pylib, test_functional] + test_data,
-                                '%s %s build/data' % (interpreter, test_functional)))
+                                '%s %s build/data -v -j2 --pretty --threshold %f --languages %s' % (
+                                    interpreter,
+                                    test_functional,
+                                    test_threshold,
+                                    ' '.join(test_languages)
+                                )))
 
 # Defaults - everything except installation
 env.Default('.', 'test', 'ftest')
