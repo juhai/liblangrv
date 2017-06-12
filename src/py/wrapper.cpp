@@ -1,6 +1,8 @@
 #include "Python.h"
 #include "language_vector.hpp"
 #include <sstream>
+#include <string>
+#include <iostream>
 
 namespace {
 
@@ -50,6 +52,26 @@ namespace {
     }
     auto builder = unwrap_object<language_vector::builder>(pybuilder);
     return wrap_object(allow_threads([builder, &text] { return (*builder)(text); }));
+  }
+
+  PyObject* builds(PyObject* /*self*/, PyObject* args) {
+    PyObject* pybuilder;
+    PyObject* lines;
+    if (!PyArg_ParseTuple(args, "OO", &pybuilder, &lines)) {
+      return nullptr;
+    }
+    auto builder = unwrap_object<language_vector::builder>(pybuilder);
+    Py_ssize_t size = PySequence_Size(lines);
+    std::vector<std::string> foo;
+    PyObject ** items = PySequence_Fast_ITEMS(lines);
+    for (auto i=0;i<size;i++) {
+      PyObject* crnt = *items++;
+      char* s = PyUnicode_AsUTF8(crnt);
+      foo.push_back(s);
+    }
+    Py_DECREF(items);
+    return wrap_object(allow_threads([builder, &foo]
+                                     { return (*builder)(foo); }));
   }
 
   PyObject* save(PyObject* /*self*/, PyObject* args) {
@@ -106,6 +128,8 @@ namespace {
     { "make_builder", make_builder, METH_VARARGS,
       "Create a builder, which may be used to construct language vectors, and load them from a stream" },
     { "build", build, METH_VARARGS, "Build a language vector from a builder & a text string" },
+    { "builds", builds, METH_VARARGS,
+      "Build a language vector from a builder & a list of strings" },
     { "save", save, METH_VARARGS, "Save a language vector ``bytes = save(builder, vector)``" },
     { "load", load, METH_VARARGS, "Save a language vector ``vector = load(builder, bytes)``" },
     { "merge", merge, METH_VARARGS, "Merge two language vector" },

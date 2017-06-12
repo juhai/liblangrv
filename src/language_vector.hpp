@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <iosfwd>
+#include <vector>
 
 namespace language_vector {
 
@@ -20,6 +21,9 @@ namespace language_vector {
   struct builder {
     // Construct a random vector representation of the given text
     vector* operator()(const std::string& text) const;
+
+    // Construct a random vector representation of the given lines of text
+    vector* operator()(const std::vector<std::string>& lines) const;
 
     // Save a language vector to a stream (use 'load' to recover it)
     void save(const vector& language, std::ostream& out) const;

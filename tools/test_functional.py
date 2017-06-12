@@ -22,6 +22,7 @@ def _build_language(builder, language, path, start, count):
     def process_line(line):
         langrv.merge(v, langrv.build(builder, line))
     _for_lines(path, start, count, process_line)
+    # print(langrv.save(builder, v))
     return v
 
 def _classify(builder, language_vectors, text):
@@ -120,6 +121,8 @@ if __name__ == '__main__':
                         to exceed the threshold""")
     parser.add_argument("--pretty", action='store_true',
                         help="generate pretty-printed human-readable output")
+    parser.add_argument("--save",
+                        help="Save profiles in given folder")
     parser.add_argument("-v", "--verbose", action="count", default=0)
 
     parser.set_defaults(**DEFAULTS)

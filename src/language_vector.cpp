@@ -52,6 +52,7 @@ namespace language_vector {
     builder_impl(std::size_t order, std::size_t n, std::size_t seed);
 
     vector* operator()(const std::string& text) const;
+    vector* operator()(const std::vector<std::string>& lines) const;
   };
 
   // *** Core ***
@@ -128,6 +129,62 @@ namespace language_vector {
     return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(result)}}};
   }
 
+  vector* builder_impl::operator()(const std::vector<std::string>& lines) const {
+    const size_t n = permutation.size();
+    vector_impl::data_t result(n, 0);
+
+    for (auto text : lines) {
+      // Working data - space for ngrams, temporary/scratch space,
+      // and for memorized character vectors
+      vector_impl::data_t ngram(n, 1);
+      vector_impl::data_t tmp_ngram(n);
+      std::vector<vector_impl::data_t> buffer(order+1, vector_impl::data_t(n, 1));
+      auto buffer_it = std::begin(buffer);
+
+      for (auto text_char : text) {
+        // The oldest character should be removed from the ngram
+        auto oldest_buffer_it = buffer_it + 1;
+        if (oldest_buffer_it == std::end(buffer)) {
+          oldest_buffer_it = std::begin(buffer);
+        }
+        const auto& old_char = *oldest_buffer_it;
+        auto& new_char = *buffer_it;
+
+        // We can do all computation in a single loop (as long as we're careful not to read
+        // and write to the same vector)
+        auto generator = generator_t{seed + text_char};
+        for (auto i = 0u; i < n; i += generator_bits) {
+          auto gen = generator();
+          for (auto j = 0u; j < std::min<size_t>(generator_bits, n - i); ++j, gen >>= 1) {
+            const auto idx = i+j;
+
+            // Generate a random element for the current character,
+            // and save the character's pattern into the buffer (so it can be removed lated)
+            const auto char_element = (gen & 1 ? 1 : -1);
+            new_char[idx] = char_element;
+
+            // Compute and save the updated ngram
+            const auto ngram_element = ngram[permutation[idx]] * old_char[permutation_order[idx]] * char_element;
+            tmp_ngram[idx] = ngram_element;
+
+            // Accumulate the computed ngram into the result
+            // Note that this 'incorrectly' adds leading ngrams (but these can be viewed
+            // as representing start-of-sequence markers)
+            result[idx] += ngram_element;
+          }
+        }
+
+        // Swap should avoid copying/allocation
+        swap(ngram, tmp_ngram);
+
+        // Move to the next element in the buffer
+        buffer_it = oldest_buffer_it;
+      }
+    }
+    // Wrap the result up to return to caller
+    return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(result)}}};
+  }
+
   void merge(vector& language, const vector& text) {
     for_each_pair(language.impl->data, text.impl->data,
                   [](int32_t& a, int32_t b) {
@@ -159,6 +216,10 @@ namespace language_vector {
 
   vector* builder::operator()(const std::string& text) const {
     return (*impl)(text);
+  }
+
+  vector* builder::operator()(const std::vector<std::string>& lines) const {
+    return (*impl)(lines);
   }
 
   void builder::save(const vector& language, std::ostream& out) const {
