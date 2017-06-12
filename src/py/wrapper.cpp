@@ -62,16 +62,16 @@ namespace {
     }
     auto builder = unwrap_object<language_vector::builder>(pybuilder);
     Py_ssize_t size = PySequence_Size(lines);
-    std::vector<std::string> foo;
+    std::vector<std::string> strings;
     PyObject ** items = PySequence_Fast_ITEMS(lines);
     for (auto i=0;i<size;i++) {
       PyObject* crnt = *items++;
       char* s = PyUnicode_AsUTF8(crnt);
-      foo.push_back(s);
+      strings.push_back(s);
     }
     Py_DECREF(items);
-    return wrap_object(allow_threads([builder, &foo]
-                                     { return (*builder)(foo); }));
+    return wrap_object(allow_threads([builder, &strings]
+                                     { return (*builder)(strings); }));
   }
 
   PyObject* save(PyObject* /*self*/, PyObject* args) {
