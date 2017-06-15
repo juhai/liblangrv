@@ -69,9 +69,10 @@ namespace {
       char* s = PyUnicode_AsUTF8(crnt);
       strings.push_back(s);
     }
-    Py_DECREF(items);
-    return wrap_object(allow_threads([builder, &strings]
-                                     { return (*builder)(strings); }));
+    PyObject * return_value =
+      wrap_object(allow_threads([builder, &strings]
+                                { return (*builder)(strings); }));
+    return return_value;
   }
 
   PyObject* save(PyObject* /*self*/, PyObject* args) {
