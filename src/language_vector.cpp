@@ -24,6 +24,20 @@ namespace {
     }
   }
 
+  template<class A, class B, class C, class F>
+  void for_each_triple(A& a, B& b, C& c, F f) {
+    const auto a_end = std::end(a);
+    const auto b_end = std::end(b);
+    auto a_it = std::begin(a);
+    auto b_it = std::begin(b);
+    while (true) {
+      if (a_it == a_end || b_it == b_end) { break; }
+      f(*a_it, c * *b_it);
+      ++a_it;
+      ++b_it;
+    }
+  }
+
 } // namespace (anonymous)
 
 
@@ -32,7 +46,7 @@ namespace language_vector {
   // *** PIMPL definitions ***
 
   struct vector_impl {
-    typedef std::vector<int32_t> data_t;
+    typedef std::vector<int64_t> data_t;
     data_t data;
   };
 
@@ -187,7 +201,14 @@ namespace language_vector {
 
   void merge(vector& language, const vector& text) {
     for_each_pair(language.impl->data, text.impl->data,
-                  [](int32_t& a, int32_t b) {
+                  [](int64_t& a, int64_t b) {
+                    a += b;
+                  });
+  }
+
+  void wmerge(vector& language, const vector& text, int64_t weight) {
+    for_each_triple(language.impl->data, text.impl->data, weight,
+                  [](int64_t& a, int64_t b) {
                     a += b;
                   });
   }

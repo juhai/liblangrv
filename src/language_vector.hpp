@@ -44,6 +44,9 @@ namespace language_vector {
   // Accumulate the 'text' vector into language
   void merge(vector& language, const vector& text);
 
+  // Accumulate the 'text' vector into language multiplied by given weight
+  void wmerge(vector& language, const vector& text, int64_t weight);
+
   // Compare 'text' with 'language':
   //   1  => perfect (best) match,
   //   -1 => worst match

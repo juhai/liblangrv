@@ -7,6 +7,6 @@ module = Extension('langrv',
                    include_dirs=['src/', ])
 
 setup(name='langrv',
-      version='0.1.1',
+      version='0.1.2',
       description='A simple implementation of Random Indexing For Language Detection.',  # noqa
       ext_modules=[module])

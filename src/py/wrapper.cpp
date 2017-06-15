@@ -110,6 +110,20 @@ namespace {
     return Py_BuildValue("");
   }
 
+  PyObject* wmerge(PyObject* /*self*/, PyObject* args) {
+    PyObject* pylanguage;
+    PyObject* pytext;
+    int64_t weight;
+    if (!PyArg_ParseTuple(args, "OOL", &pylanguage, &pytext, &weight)) {
+      return nullptr;
+    }
+    auto language = unwrap_object<language_vector::vector>(pylanguage);
+    auto text = unwrap_object<language_vector::vector>(pytext);
+    allow_threads([language, text, weight]
+                  { language_vector::wmerge(*language, *text, weight); });
+    return Py_BuildValue("");
+  }
+
   PyObject* score(PyObject* /*self*/, PyObject* args) {
     PyObject* pylanguage;
     PyObject* pytext;
@@ -133,6 +147,7 @@ namespace {
     { "save", save, METH_VARARGS, "Save a language vector ``bytes = save(builder, vector)``" },
     { "load", load, METH_VARARGS, "Save a language vector ``vector = load(builder, bytes)``" },
     { "merge", merge, METH_VARARGS, "Merge two language vector" },
+    { "wmerge", wmerge, METH_VARARGS, "Merge two language vector with given weight for latter" },
     { "score", score, METH_VARARGS, "Compare two language vectors" },
     { nullptr, nullptr, 0, nullptr }
   };

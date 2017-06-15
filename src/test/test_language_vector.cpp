@@ -13,6 +13,11 @@ namespace {
     auto builder = make_builder(order);
     return std::unique_ptr<language_vector::vector>{(*builder)(text)};
   }
+  std::unique_ptr<language_vector::vector> builds(const std::vector<std::string>& lines,
+                                                  size_t order = 3) {
+    auto builder = make_builder(order);
+    return std::unique_ptr<language_vector::vector>{(*builder)(lines)};
+  }
 
 } // namespace (anonymous)
 
@@ -30,6 +35,26 @@ TEST_CASE("Language vectors can be built and scored", "") {
 
   // there is no overlap here (just random coincidence of ngram vectors)
   REQUIRE(language_vector::score(*build("vwxyz"), *build("abcde")) < 0.01f);
+}
+
+TEST_CASE("Language vectors can be built from a vector of strings", "") {
+  std::vector<std::string> data =
+    {"In the beginning God created the heaven and the earth.",
+     "And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
+     "And God said, Let there be light: and there was light.",
+     "And God saw the light, that it was good: and God divided the light from the darkness.",
+     "And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day.",
+     "And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters.",
+    };
+  auto batch = builds(data);
+  auto non_batch = build("");
+  for (auto it=data.begin();it < data.end();it++) {
+    merge(*non_batch, *build(*it));
+  };
+  // Batch and non-batch should return the same language vector
+  REQUIRE(language_vector::score(*batch, *batch) == Approx(1));
+  REQUIRE(language_vector::score(*non_batch, *non_batch) == Approx(1));
+  REQUIRE(language_vector::score(*batch, *non_batch) == Approx(1));
 }
 
 TEST_CASE("Language vectors obey ngram invariance", "[ngram]") {
@@ -61,6 +86,20 @@ TEST_CASE("Language vectors can be merged", "") {
   auto x = build("abcdef");
   language_vector::merge(*x, *build("fedcba"));
   REQUIRE(language_vector::score(*x, *build("abcdef")) < 0.99f);
+
+  // Weighted merging should be order dependent, i.e. the result not similar
+  auto wa = build("abcdef");
+  language_vector::wmerge(*wa, *build("12345"), 2);
+  auto wb = build("12345");
+  language_vector::wmerge(*wb, *build("abcdef"), 2);
+  REQUIRE(language_vector::score(*wa, *wb) < 0.99f);
+
+  // Weighted merging with unity weight should give same result
+  auto wua = build("abcdef");
+  language_vector::wmerge(*wua, *build("12345"), 1);
+  auto wub = build("12345");
+  language_vector::wmerge(*wub, *build("abcdef"), 1);
+  REQUIRE(language_vector::score(*wua, *wub) == Approx(1));
 }
 
 TEST_CASE("Language vectors can be serialized/deserialized", "[io]") {
