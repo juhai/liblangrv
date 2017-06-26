@@ -2,7 +2,7 @@
 import os
 env = Environment()
 
-version = '0.1.0'
+version = '0.1.1'
 
 # Third party - unit testing framework
 env.Command([File('#build/third-party/Catch/include/catch.hpp')], [],

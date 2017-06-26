@@ -47,17 +47,20 @@ namespace {
   PyObject* build(PyObject* /*self*/, PyObject* args) {
     PyObject* pybuilder;
     const char* text;
-    if (!PyArg_ParseTuple(args, "Os", &pybuilder, &text)) {
+    bool addSpace = true;
+    if (!PyArg_ParseTuple(args, "Os|p", &pybuilder, &text, &addSpace)) {
       return nullptr;
     }
     auto builder = unwrap_object<language_vector::builder>(pybuilder);
-    return wrap_object(allow_threads([builder, &text] { return (*builder)(text); }));
+    return wrap_object(allow_threads([builder, &text, &addSpace]
+                                     { return (*builder)(text, addSpace); }));
   }
 
   PyObject* builds(PyObject* /*self*/, PyObject* args) {
     PyObject* pybuilder;
     PyObject* lines;
-    if (!PyArg_ParseTuple(args, "OO", &pybuilder, &lines)) {
+    bool addSpace = true;
+    if (!PyArg_ParseTuple(args, "OO|p", &pybuilder, &lines, &addSpace)) {
       return nullptr;
     }
     auto builder = unwrap_object<language_vector::builder>(pybuilder);
@@ -70,8 +73,8 @@ namespace {
       strings.push_back(s);
     }
     PyObject * return_value =
-      wrap_object(allow_threads([builder, &strings]
-                                { return (*builder)(strings); }));
+      wrap_object(allow_threads([builder, &strings, &addSpace]
+                                { return (*builder)(strings, addSpace); }));
     return return_value;
   }
 

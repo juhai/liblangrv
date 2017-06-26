@@ -3,6 +3,8 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
+#include <cuchar>
+#include <cassert>
 
 // *** Helpers ***
 
@@ -65,8 +67,9 @@ namespace language_vector {
 
     builder_impl(std::size_t order, std::size_t n, std::size_t seed);
 
-    vector* operator()(const std::string& text) const;
-    vector* operator()(const std::vector<std::string>& lines) const;
+    vector* operator()(const std::string& text, const bool addSpace) const;
+    vector* operator()(const std::vector<std::string>& lines,
+                       const bool addSpace) const;
   };
 
   // *** Core ***
@@ -88,7 +91,8 @@ namespace language_vector {
     }
   }
 
-  vector* builder_impl::operator()(const std::string& text) const {
+  vector* builder_impl::operator()(const std::string& text,
+                                   const bool addSpace=true) const {
     const size_t n = permutation.size();
     vector_impl::data_t result(n, 0);
 
@@ -99,7 +103,22 @@ namespace language_vector {
     std::vector<vector_impl::data_t> buffer(order+1, vector_impl::data_t(n, 1));
     auto buffer_it = std::begin(buffer);
 
-    for (auto text_char : text) {
+    // Add a space at the end of line to make sure the final context is used.
+    std::string eval_text = text;
+    if (addSpace) {
+      eval_text += " ";
+    }
+    std::mbstate_t state{}; // zero-initialized to initial state
+    char32_t c32;
+    const char *ptr = eval_text.c_str(), *end = eval_text.c_str() + eval_text.size() + 1;
+    while (int rc = std::mbrtoc32(&c32, ptr, end - ptr, &state)) {
+      assert(rc != -3);
+      if (rc <= 0) {
+        std::cerr << "Error processing input: " << eval_text << std::endl;
+        break;
+      }
+      // Increment pointer by amount of bytes for current UTF32 value
+      ptr += rc;
       // The oldest character should be removed from the ngram
       auto oldest_buffer_it = buffer_it + 1;
       if (oldest_buffer_it == std::end(buffer)) {
@@ -110,7 +129,7 @@ namespace language_vector {
 
       // We can do all computation in a single loop (as long as we're careful not to read
       // and write to the same vector)
-      auto generator = generator_t{seed + text_char};
+      auto generator = generator_t{seed + c32};
       for (auto i = 0u; i < n; i += generator_bits) {
         auto gen = generator();
         for (auto j = 0u; j < std::min<size_t>(generator_bits, n - i); ++j, gen >>= 1) {
@@ -143,7 +162,8 @@ namespace language_vector {
     return new vector{std::unique_ptr<vector_impl>{new vector_impl{std::move(result)}}};
   }
 
-  vector* builder_impl::operator()(const std::vector<std::string>& lines) const {
+  vector* builder_impl::operator()(const std::vector<std::string>& lines,
+                                   const bool addSpace=true) const {
     const size_t n = permutation.size();
     vector_impl::data_t result(n, 0);
 
@@ -155,7 +175,22 @@ namespace language_vector {
       std::vector<vector_impl::data_t> buffer(order+1, vector_impl::data_t(n, 1));
       auto buffer_it = std::begin(buffer);
 
-      for (auto text_char : text) {
+      // Add a space at the end of line to make sure the final context is used.
+      std::string eval_text = text;
+      if (addSpace) {
+        eval_text += " ";
+      }
+      std::mbstate_t state{}; // zero-initialized to initial state
+      char32_t c32;
+      const char *ptr = eval_text.c_str(), *end = eval_text.c_str() + eval_text.size() + 1;
+      while (int rc = std::mbrtoc32(&c32, ptr, end - ptr, &state)) {
+        assert(rc != -3);
+        if (rc <= 0) {
+          std::cerr << "Error processing input: " << eval_text << std::endl;
+          break;
+        }
+        // Increment pointer by amount of bytes for current UTF32 value
+        ptr += rc;
         // The oldest character should be removed from the ngram
         auto oldest_buffer_it = buffer_it + 1;
         if (oldest_buffer_it == std::end(buffer)) {
@@ -166,7 +201,7 @@ namespace language_vector {
 
         // We can do all computation in a single loop (as long as we're careful not to read
         // and write to the same vector)
-        auto generator = generator_t{seed + text_char};
+        auto generator = generator_t{seed + c32};
         for (auto i = 0u; i < n; i += generator_bits) {
           auto gen = generator();
           for (auto j = 0u; j < std::min<size_t>(generator_bits, n - i); ++j, gen >>= 1) {
@@ -235,12 +270,14 @@ namespace language_vector {
   builder::builder(std::unique_ptr<builder_impl>&& _impl) : impl{std::move(_impl)} { }
   builder::~builder() { }
 
-  vector* builder::operator()(const std::string& text) const {
-    return (*impl)(text);
+  vector* builder::operator()(const std::string& text,
+                              const bool addSpace) const {
+    return (*impl)(text, addSpace);
   }
 
-  vector* builder::operator()(const std::vector<std::string>& lines) const {
-    return (*impl)(lines);
+  vector* builder::operator()(const std::vector<std::string>& lines,
+                              const bool addSpace) const {
+    return (*impl)(lines, addSpace);
   }
 
   void builder::save(const vector& language, std::ostream& out) const {

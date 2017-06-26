@@ -9,14 +9,16 @@ namespace {
     return std::unique_ptr<language_vector::builder>{language_vector::make_builder(order, 10000, 42)};
   }
 
-  std::unique_ptr<language_vector::vector> build(const std::string& text, size_t order = 3) {
+  std::unique_ptr<language_vector::vector> build(const std::string& text, size_t order = 3,
+                                                 bool addSpace = true) {
     auto builder = make_builder(order);
-    return std::unique_ptr<language_vector::vector>{(*builder)(text)};
+    return std::unique_ptr<language_vector::vector>{(*builder)(text, addSpace)};
   }
   std::unique_ptr<language_vector::vector> builds(const std::vector<std::string>& lines,
-                                                  size_t order = 3) {
+                                                  size_t order = 3,
+                                                  bool addSpace = true) {
     auto builder = make_builder(order);
-    return std::unique_ptr<language_vector::vector>{(*builder)(lines)};
+    return std::unique_ptr<language_vector::vector>{(*builder)(lines, addSpace)};
   }
 
 } // namespace (anonymous)
@@ -46,11 +48,16 @@ TEST_CASE("Language vectors can be built from a vector of strings", "") {
      "And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day.",
      "And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters.",
     };
-  auto batch = builds(data);
-  auto non_batch = build("");
-  for (auto it=data.begin();it < data.end();it++) {
+
+  // Default behaviour is to add space after each line to ensure final end
+  // of word is triggered. Here we need to init non_batch with empty string
+  // and not add space
+  auto batch = builds(data, 3, true);
+  auto non_batch = build("", 3, false);
+  for (auto it=data.begin();it < data.end();++it) {
     merge(*non_batch, *build(*it));
   };
+
   // Batch and non-batch should return the same language vector
   REQUIRE(language_vector::score(*batch, *batch) == Approx(1));
   REQUIRE(language_vector::score(*non_batch, *non_batch) == Approx(1));
@@ -66,6 +73,18 @@ TEST_CASE("Language vectors obey ngram invariance", "[ngram]") {
   // trigrams should be agnostic to the following, as the ngrams are both
   // ..a .a. a.. ..b .b. b..
   REQUIRE(language_vector::score(*build("..a..b.."), *build("..b..a..")) == Approx(1));
+}
+
+TEST_CASE("Default space padding should work") {
+  // By default, each string has 0x20 appended to it before processing
+  // Test that disabling it creates a distinguishable vector
+
+  // Check that default equals same as when true given
+  REQUIRE(language_vector::score(*build("a", 2),
+                                 *build("a", 2, true)) == Approx(1));
+  // Giving false should result in small cosine similarity
+  REQUIRE(language_vector::score(*build("a", 2, true),
+                                 *build("a", 2, false)) < 0.99f);
 }
 
 TEST_CASE("Language vectors can be merged", "") {

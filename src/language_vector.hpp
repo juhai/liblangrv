@@ -20,10 +20,12 @@ namespace language_vector {
   struct builder_impl;
   struct builder {
     // Construct a random vector representation of the given text
-    vector* operator()(const std::string& text) const;
+    vector* operator()(const std::string& text,
+                       const bool addSpace=true) const;
 
     // Construct a random vector representation of the given lines of text
-    vector* operator()(const std::vector<std::string>& lines) const;
+    vector* operator()(const std::vector<std::string>& lines,
+                       const bool addSpace=true) const;
 
     // Save a language vector to a stream (use 'load' to recover it)
     void save(const vector& language, std::ostream& out) const;

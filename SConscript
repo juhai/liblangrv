@@ -9,8 +9,8 @@ def build_so(env, base):
 Import('*')
 env = env.Clone()
 
-env['CC'] = 'clang'
-env['CXX'] = 'clang++'
+env['CC'] = 'gcc'
+env['CXX'] = 'g++'
 env.Append(CXXFLAGS=['-std=c++11', '-Wall', '-Wextra', '-Werror', '-O3', '-g', '-fPIC', '-mtune=native'],
            CPPDEFINES=[('FORTIFY_SOURCE', '2')])
 
